@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Robok bus</title>
+    <link rel="stylesheet" href="chat.css" />
+</head>
+<body>
+    <h1>Robok bus</h1>
+    <video id="video" autoplay playsinline muted style="width:640px; height:480px;"></video>
+    <p id="age">Detected Age: </p>
+
+    <script>
+        function setupVideoStream() {
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then((stream) => {
+                    const video = document.getElementById("video");
+                    video.srcObject = stream;
+                    video.onloadedmetadata = function () {
+                        video.play();
+                        setInterval(captureFrame, 5000); // 매 5초마다 프레임 캡처
+                    };
+                })
+                .catch((err) => {
+                    console.error("Error accessing webcam:", err);
+                });
+        }
+
+        function captureFrame() {
+            const video = document.getElementById("video");
+            const canvas = document.createElement("canvas");
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext("2d").drawImage(video, 0, 0, canvas.width, canvas.height);
+            const data = canvas.toDataURL("image/png");
+
+            fetch("http://127.0.0.1:5000/analyze_frame", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ image: data })
+            })
+            .then((response) => response.json())
+            .then((data) => {
+                document.getElementById("age").innerText = "Detected Age: " + data.age;
+            })
+            .catch((error) => console.error("Error:", error));
+        }
+
+        setupVideoStream();
+    </script>
+</body>
+</html>
